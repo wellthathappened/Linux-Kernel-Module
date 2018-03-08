@@ -25,7 +25,7 @@ int closeDevice(struct inode *inode, struct file *file);
 int readFromDevice(struct file *, char *, size_t, loff_t *);
 int writeToDevice(struct file *, const char *, size_t, loff_t *);
 
-int deviceNumber;                               // Device Driver Number
+int driverNumber;                               // Device Driver Number
 char buffer[BUFFER_SIZE];                       // Character Buffer
 bool deviceOpen = false;                        // Checks if a device is in use
 
@@ -40,16 +40,21 @@ struct file_operations fops = {
 // First method to be called when the module is loaded
 int init_module(void)
 {
-    deviceNumber = register_chrdev(0, DEVICE_NAME, &fops);
+    driverNumber = register_chrdev(0, DEVICE_NAME, &fops);
     
     if(deviceNumber < 0)
     {
         printk(KERN_ALERT "Device failed to register: %d\n", deviceNumber);
         
-        return deviceNumber;
+        return driverNumber;
     }
     
-    return 0;
+    else
+    {
+        printk(KERN_ALERT "Module successfully loaded!");
+        
+        return 0;
+    }
 }
 
 // Method to be called when module is unloaded
@@ -59,17 +64,26 @@ void cleanup_module(void)
     
     if(temp < 0)
         printk(KERN_ALERT "Error in unregister_chrdev: %d\n", temp);
+    
+    else
+        printk(KERN_ALERT "Module successfully unloaded.");
 }
 
 // Method called when opening a device
 int openDevice(struct inode *inode, struct file *file)
 {
     if(deviceOpen)
+    {
+        printk(KERN_ALERT "A device is currently opened in this module.");
+        
         return -EBusy
+    }
         
     else
     {
         try_module_get(THIS_MODULE);
+        
+        printk(KERN_ALERT "The device was successfully opened!");
         
         deviceOpen = true;
         
@@ -81,6 +95,8 @@ int openDevice(struct inode *inode, struct file *file)
 int closeDevice(struct inode *inode, struct file *file)
 {
     module_put(THIS_MODULE);
+    
+    printk(KERN_ALERT "The device was successfully released!");
     
     deviceOpen = false;
     
