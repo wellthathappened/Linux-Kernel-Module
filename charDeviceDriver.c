@@ -1,257 +1,115 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
+// COP 4600 - Programming Assignment 2
+// Students: Serra Abak, Ian Lewis, Jonathan Killeen
+// Instructor: Matthew B. Gerber Ph.D.
 
+// Assignment: Write a character-mode Linux device driver as a kernel module.
 
-// Represents a circular buffer
-typedef struct cbuffer {
-    char * buffer;      // the buffer
-    int start;          // index of the first effective first element of the buffer
-    int end;            // index of the effective last element of the buffer
-    int buffersize;     // total number of cells in the buffer
-    int charsinbuffer;  // total number of filled cells in the buffer
-}cbuffer_t;
+// Code structure and organization based on references from:
+// Peter Jay Salzman's and Michael Burian, Ori Pomerantz's "The Linux Kernel Module Programming Guide"
+// http://www.tldp.org/LDP/lkmpg/2.6/html/x569.html
 
-// Function prototypes
+#include <linux/modversions.h>
+#include <linux/module.h>
+#include <linux/tty.h>
+#include <linux/fs.h>
+#include <asm/uaccess.h>
 
-// Creates a cbuffer of size n and returns a pointer to it. Returns NULL if an error occurs.
-cbuffer_t* createCirBuffer(int n);
+#define DEVICE_NAME "charDeviceDriver"
+#define BUFFER_SIZE 1024
 
-// Destroys a cbuffer.
-void destroyCirBuffer(cbuffer_t *cb);
+void cleanup_module(void);
+int init_module(void);
+int writeToDevice();
+int openDevice(struct inode *inode, struct file *file);
+int closeDevice(struct inode *inode, struct file *file);
+int readFromDevice(struct file *, char *, size_t, loff_t *);
+int writeToDevice(struct file *, const char *, size_t, loff_t *);
 
-// Writes passed character to end of cbuffer and returns the passed character if space is available. Returns -1 if an error occurs.
-int *writeToBuffer(cbuffer_t *cb, char c);
+int driverNumber;                               // Device Driver Number
+char buffer[BUFFER_SIZE];                       // Character Buffer
+bool deviceOpen = false;                        // Checks if a device is in use
 
-// Reads the last character from the cbuffer, removes it from the buffer and returns it. Returns -1 if an error occurs.
-char readFromBuffer(cbuffer_t *cb);
+// File operations defined for use in our program
+struct file_operations fops = {
+    .read = readFromDevice,
+    .write = writeToDevice,
+    .open = openDevice,
+    .release = closeDevice
+};
 
-// Prints the effective buffer starting from the starting index to the ending index of the buffer
-void printEffectiveBuffer(cbuffer_t *cb);
-
-// Prints the whole actual buffer starting from index 0 to end of the buffer
-void printActualBuffer(cbuffer_t *cb);
-
-// Reads but does not remove the first character of the cbuffer and returns it. Returns -1 if an error occurs.
-char peekBuffer(cbuffer_t *cb);
-
-
-// Functions
-// Creates a cbuffer of size n and returns a pointer to it. Returns NULL if an error occurs.
-cbuffer_t* createCirBuffer(int n) {
-    int i = 0;
-
-    cbuffer_t * cb = (struct cbuffer*) malloc(sizeof(cbuffer_t));
-
-    // allocate space for the cbs character array
-    cb->buffer = (char *) malloc(sizeof(char)*n);
-
-    // set the cb attributes to default values
-    cb->start = 0;
-
-    cb->end = 0;
-
-    cb->buffersize = n;
-
-    cb->charsinbuffer = 0;
-
-//    for(i = 0; i < n; i++){
-//        cb->buffer[i] = -1;
-//    }
-
-    // if there were no issues, return a pointer to the newcbuffer
-    return cb;
-}
-
-// Destroys a cbuffer.
-void destroyCirBuffer(cbuffer_t *cb){
-    if(cb != NULL){
-        if(cb->buffer != NULL){
-            free(cb->buffer);
-        }
-        free(cb);
+// First method to be called when the module is loaded
+int init_module(void)
+{
+    driverNumber = register_chrdev(0, DEVICE_NAME, &fops);
+    
+    if(deviceNumber < 0)
+    {
+        printk(KERN_ALERT "Device failed to register: %d\n", deviceNumber);
+        
+        return driverNumber;
+    }
+    
+    else
+    {
+        printk(KERN_ALERT "Module successfully loaded!");
+        
+        return 0;
     }
 }
 
-// Writes passed character to end of cbuffer and returns the passed character if space is available. Returns -1 if an error occurs.
-int *writeToBuffer(cbuffer_t *cb, char c){
-
-    if(cb->charsinbuffer < cb->buffersize){
-        // buffer is not full
-        if(cb->charsinbuffer == 0){
-            // buffer is empty
-            cb->buffer[cb->start] = c;
-
-        }else{
-            // buffer is not empty
-            cb->end = (cb->end + 1) % cb->buffersize;
-
-            // check if end is outside actual array size
-
-            // check if end is equal to start
-
-            cb->buffer[cb->end] = c;
-
-        }
-
-        cb->charsinbuffer++;
-
-    }else{
-        // buffer is full
-        c = -1;
-    }
-
-    return c;
+// Method to be called when module is unloaded
+void cleanup_module(void)
+{
+    int temp = unregister_chrdev(Major, DEVICE_NAME);
+    
+    if(temp < 0)
+        printk(KERN_ALERT "Error in unregister_chrdev: %d\n", temp);
+    
+    else
+        printk(KERN_ALERT "Module successfully unloaded.");
 }
 
-// Reads the last character from the cbuffer, removes it from the buffer and returns it. Returns -1 if an error occurs.
-char readFromBuffer(cbuffer_t *cb){
-    char bchar = -1;
-    int i;
-
-    if(cb->charsinbuffer > 0) {
-        // buffer is not empty
-        bchar = cb->buffer[cb->start];
-        cb->start = (cb->start + 1) % cb->buffersize;
-        cb->charsinbuffer--;
-
-    }else{
-        // buffer is empty
-
+// Method called when opening a device
+int openDevice(struct inode *inode, struct file *file)
+{
+    if(deviceOpen)
+    {
+        printk(KERN_ALERT "A device is currently opened in this module.");
+        
+        return -EBusy
     }
-
-    return bchar;
+        
+    else
+    {
+        try_module_get(THIS_MODULE);
+        
+        printk(KERN_ALERT "The device was successfully opened!");
+        
+        deviceOpen = true;
+        
+        return 0;
+    }
 }
 
-// Prints the effective buffer starting from the starting index to the ending index of the buffer
-void printEffectiveBuffer(cbuffer_t *cb){
-    int i;
-    int f;
-    int cursor;
-    printf("[");
-
-    if(cb->charsinbuffer > 0){
-        // 1 or more chars
-
-        if(cb->charsinbuffer == 1){
-            // 1 char
-            printf("%d",cb->buffer[cursor]);
-
-        }else{
-            // 2 or more chars
-            cursor = cb->start;
-
-            while(cursor != cb->end){
-                printf("%d,",cb->buffer[cursor]);
-                cursor = (cursor + 1) % cb->buffersize;
-            }
-
-            printf("%d",cb->buffer[cursor]);
-
-
-        }
-
-    }else{
-        // 0 chars
-
-    }
-    printf("]\n");
-
-}
-
-// Prints the whole actual buffer starting from index 0 to end of the buffer
-void printActualBuffer(cbuffer_t *cb){
-    int i;
-    int f;
-    printf("[");
-
-    if(cb->buffersize > 0){
-        // 1 or more chars
-        f = cb->buffersize - 2;
-        for(i = 0; i < f; i++){
-            printf("%d,",cb->buffer[i]);
-        }
-        i++;
-        printf("%d",cb->buffer[i]);
-    }else{
-        // 0 chars
-
-    }
-    printf("]\n");
-
-}
-
-// Reads but does not remove the first character of the cbuffer and returns it. Returns -1 if an error occurs.
-char peekBuffer(cbuffer_t *cb){
-    char temp = -1;
-
-    if(cb->charsinbuffer > 0){
-        temp = cb->buffer[cb->start];
-    }
-
-    return temp;
-}
-
-// Example of the cbuffer class and functions in work
-int main(){
-    // create the buffer
-    cbuffer_t *cb = createCirBuffer(20);
-
-    int i = 0;
-    printf("create the buffer\n");
-    printf("actual buffer\n");
-    printActualBuffer(cb);
-    printf("effective buffer\n");
-    printEffectiveBuffer(cb);
-    printf("\n");
-
-    // fill the buffer
-    printf("fill the buffer\n");
-    for(i = 0; i < 24; i++){
-        printf("%d,", writeToBuffer(cb, i));
-    }
-    printf("\n");
-
-    printf("actual buffer\n");
-    printActualBuffer(cb);
-    printf("effective buffer\n");
-    printEffectiveBuffer(cb);
-    printf("\n");
-
-    // empty the buffer
-    printf("remove from the buffer\n");
-    for(i = 0; i < 15; i++){
-        printf("%d,", readFromBuffer(cb));
-    }
-    printf("\n");
-
-    printf("actual buffer\n");
-    printActualBuffer(cb);
-    printf("effective buffer\n");
-    printEffectiveBuffer(cb);
-    printf("\n");
-
-    // fill the buffer
-    printf("fill the buffer\n");
-    for(i=60; i < 62; i++){
-        printf("%d,", writeToBuffer(cb, i));
-    }
-    printf("\n");
-
-    printf("actual buffer\n");
-    printActualBuffer(cb);
-    printf("effective buffer\n");
-    printEffectiveBuffer(cb);
-    printf("\n");
-
-    // destroy the buffer
-    printf("destroy buffer\n");
-    destroyCirBuffer(cb);
-
+// Method called when closing the current device
+int closeDevice(struct inode *inode, struct file *file)
+{
+    module_put(THIS_MODULE);
+    
+    printk(KERN_ALERT "The device was successfully released!");
+    
+    deviceOpen = false;
+    
     return 0;
 }
 
+// Method called when reading from the device to the buffer
+int readFromDevice(struct file *, char *, size_t, loff_t *)
+{
+    // TODO
+}
 
-
-
+int writeToDevice(struct file *, const char *, size_t, loff_t *)
+{
+    // TODO
+}
