@@ -21,13 +21,13 @@ cbuffer_t* createCirBuffer(int n);
 // Destroys a cbuffer.
 void destroyCirBuffer(cbuffer_t *cb);
 
-// Writes passed character to end of cbuffer and returns a pointer which points to the buffer location if space is available. Returns NULL if an error occurs.
+// Writes passed character to end of cbuffer and returns the passed character if space is available. Returns -1 if an error occurs.
 int *writeToBuffer(cbuffer_t *cb, char c);
 
 // Reads the last character from the cbuffer, removes it from the buffer and returns it. Returns -1 if an error occurs.
 char readFromBuffer(cbuffer_t *cb);
 
-// Prints the whole actual buffer starting from index 0 to end of the buffer
+// Prints the effective buffer starting from the starting index to the ending index of the buffer
 void printEffectiveBuffer(cbuffer_t *cb);
 
 // Prints the whole actual buffer starting from index 0 to end of the buffer
@@ -74,7 +74,7 @@ void destroyCirBuffer(cbuffer_t *cb){
     }
 }
 
-// Writes passed character to end of cbuffer and returns a pointer which points to the buffer location if space is available. Returns NULL if an error occurs.
+// Writes passed character to end of cbuffer and returns the passed character if space is available. Returns -1 if an error occurs.
 int *writeToBuffer(cbuffer_t *cb, char c){
 
     if(cb->charsinbuffer < cb->buffersize){
@@ -124,7 +124,7 @@ char readFromBuffer(cbuffer_t *cb){
     return bchar;
 }
 
-// Prints the whole actual buffer starting from index 0 to end of the buffer
+// Prints the effective buffer starting from the starting index to the ending index of the buffer
 void printEffectiveBuffer(cbuffer_t *cb){
     int i;
     int f;
@@ -133,8 +133,6 @@ void printEffectiveBuffer(cbuffer_t *cb){
 
     if(cb->charsinbuffer > 0){
         // 1 or more chars
-
-        printf("[");
 
         if(cb->charsinbuffer == 1){
             // 1 char
