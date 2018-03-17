@@ -8,7 +8,6 @@
 // Peter Jay Salzman's and Michael Burian, Ori Pomerantz's "The Linux Kernel Module Programming Guide"
 // http://www.tldp.org/LDP/lkmpg/2.6/html/x569.html
 
-#include <linux/modversions.h>
 #include <linux/module.h>
 #include <linux/tty.h>
 #include <linux/fs.h>
@@ -16,10 +15,10 @@
 
 #define DEVICE_NAME "charDeviceDriver"
 #define BUFFER_SIZE 1024
+#define EBUSY 16
 
 void cleanup_module(void);
 int init_module(void);
-int writeToDevice();
 int openDevice(struct inode *inode, struct file *file);
 int closeDevice(struct inode *inode, struct file *file);
 int readFromDevice(struct file *, char *, size_t, loff_t *);
@@ -42,9 +41,9 @@ int init_module(void)
 {
     driverNumber = register_chrdev(0, DEVICE_NAME, &fops);
     
-    if(deviceNumber < 0)
+    if(driverNumber < 0)
     {
-        printk(KERN_ALERT "Device failed to register: %d\n", deviceNumber);
+        printk(KERN_ALERT "Device failed to register: %d\n", driverNumber);
         
         return driverNumber;
     }
@@ -60,13 +59,13 @@ int init_module(void)
 // Method to be called when module is unloaded
 void cleanup_module(void)
 {
-    int temp = unregister_chrdev(Major, DEVICE_NAME);
-    
+    unregister_chrdev(driverNumber, DEVICE_NAME);
+    /*
     if(temp < 0)
         printk(KERN_ALERT "Error in unregister_chrdev: %d\n", temp);
     
     else
-        printk(KERN_ALERT "Module successfully unloaded.");
+        printk(KERN_ALERT "Module successfully unloaded.");*/
 }
 
 // Method called when opening a device
@@ -76,7 +75,7 @@ int openDevice(struct inode *inode, struct file *file)
     {
         printk(KERN_ALERT "A device is currently opened in this module.");
         
-        return -EBusy
+        return EBUSY;
     }
         
     else
@@ -104,12 +103,14 @@ int closeDevice(struct inode *inode, struct file *file)
 }
 
 // Method called when reading from the device to the buffer
-int readFromDevice(struct file *, char *, size_t, loff_t *)
+int readFromDevice(struct file *filp, char *buffer, size_t length, loff_t *offset)
 {
     // TODO
+    return 0;
 }
 
-int writeToDevice(struct file *, const char *, size_t, loff_t *)
+int writeToDevice(struct file *filp, const char *buffer, size_t length, loff_t *offset)
 {
     // TODO
+    return 0;
 }
