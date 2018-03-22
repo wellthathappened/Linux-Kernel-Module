@@ -87,12 +87,12 @@ int init_module(void)
         return driverNumber;
     }
     // Success
-    //else
-    //{
+    else
+    {
         printk(KERN_INFO "Module successfully loaded!\n");
 
         return 0;
-    //}
+    }
 }
 
 // Method to be called when module is unloaded
@@ -108,7 +108,7 @@ int openDevice(struct inode *inode, struct file *file)
 {
     if(deviceOpen)
     {
-        printk(KERN_ALERT "A device is currently opened in this module.");
+        printk(KERN_ALERT "A device is currently opened in this module.\n");
         
         return EBUSY;
     }
@@ -117,7 +117,7 @@ int openDevice(struct inode *inode, struct file *file)
     {
         try_module_get(THIS_MODULE);
         
-        printk(KERN_INFO "The device was successfully opened!");
+        printk(KERN_INFO "The device was successfully opened!\n");
         
         deviceOpen = true;
         
@@ -130,7 +130,7 @@ int closeDevice(struct inode *inode, struct file *file)
 {
     module_put(THIS_MODULE);
     
-    printk(KERN_ALERT "The device was successfully released!");
+    printk(KERN_ALERT "The device was successfully released!\n");
     
     deviceOpen = false;
     
