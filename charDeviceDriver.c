@@ -1,41 +1,83 @@
-// COP 4600 - Programming Assignment 2
-// Students: Serra Abak, Ian Lewis, Jonathan Killeen
-// Instructor: Matthew B. Gerber Ph.D.
 
-// Assignment: Write a character-mode Linux device driver as a kernel module.
+#include <linux/init.h>           
+#include <linux/module.h>      
+#include <linux/device.h>  
+#include <linux/kernel.h>       
+#include <linux/fs.h>             
+#include <linux/uaccess.h>          
+#include <linux/vmalloc.h>
 
-// Code structure and organization based on references from:
-// Peter Jay Salzman's and Michael Burian, Ori Pomerantz's "The Linux Kernel Module Programming Guide"
-// http://www.tldp.org/LDP/lkmpg/2.6/html/x569.html
 
-#include <linux/module.h>
-#include <linux/tty.h>
-#include <linux/fs.h>
-#include <asm/uaccess.h>
-#include <linux/slab.h>
-#include <linux/kernel.h>
 
-#define DEVICE_NAME "charDeviceDriver"
-#define BUFFER_SIZE 1024
-#define EBUSY 16
+
+//======================================================================================================================================================================================
+//======================================================================================================================================================================================
+//======================================================================================================================================================================================
+//======================================================================================================================================================================================
+// The stuff here is from the Molly example and should not be submitted. It's only purpose was to get the project up and running to test the read/write functions
+
+
+// Constants
+#define DEVICE_NAME "charMode"    
+#define	CLASS_NAME  "chrm"       
+#define	CB_BUFFER_SIZE 1024
+
+// Module information
+MODULE_LICENSE("GPL");            
+MODULE_AUTHOR("Jonathan Killeen");  
+MODULE_DESCRIPTION("Linux char driver PA2"); 
+MODULE_VERSION("1");     
+
+// Device number
+static int    majorNumber;                 
+
+// Counts the number of times the device is opened
+static int    numberOpens = 0;  
+
+// pointer to device driver class
+static struct class*  charModeClass  = NULL; 
+
+// pointer to device driver object
+static struct device* charModeDevice = NULL; 
+
+// prototype functions for device driver
+static int     dev_open(struct inode *, struct file *);
+static int     dev_release(struct inode *, struct file *);
+static ssize_t dev_read(struct file *, char *, size_t, loff_t *);
+static ssize_t dev_write(struct file *, const char *, size_t, loff_t *);
+
+// The stuff here is from the Molly example and should not be submitted. It's only purpose was to get the project up and running to test the read/write functions
+//======================================================================================================================================================================================
+//======================================================================================================================================================================================
+//======================================================================================================================================================================================
+//======================================================================================================================================================================================
+
+
+
+
+
+
+
+
+
+//======================================================================================================================================================================================
+//======================================================================================================================================================================================
+//======================================================================================================================================================================================
+//======================================================================================================================================================================================
+//======================================================================================================================================================================================
+// This is code from the circular buffer c file
 
 
 // Represents a circular buffer
-typedef struct cbuffer_t {
+typedef struct cbuffer {
     char * buffer;      // the buffer
     int start;          // index of the first effective first element of the buffer
     int end;            // index of the effective last element of the buffer
     int buffersize;     // total number of cells in the buffer
     int charsinbuffer;  // total number of filled cells in the buffer
-} cbuffer_t;
+}cbuffer_t;
 
 // Function prototypes
-void cleanup_module(void);
-int init_module(void);
-int openDevice(struct inode *inode, struct file *file);
-int closeDevice(struct inode *inode, struct file *file);
-int readFromDevice(struct file *, char *, size_t, loff_t *);
-int writeToDevice(struct file *, const char *, size_t, loff_t *);
 
 // Creates a cbuffer of size n and returns a pointer to it. Returns NULL if an error occurs.
 cbuffer_t* createCirBuffer(int n);
@@ -44,7 +86,7 @@ cbuffer_t* createCirBuffer(int n);
 void destroyCirBuffer(cbuffer_t *cb);
 
 // Writes passed character to end of cbuffer and returns the passed character if space is available. Returns -1 if an error occurs.
-int *writeToBuffer(cbuffer_t *cb, char c);
+int writeToBuffer(cbuffer_t *cb, char c);
 
 // Reads the last character from the cbuffer, removes it from the buffer and returns it. Returns -1 if an error occurs.
 char readFromBuffer(cbuffer_t *cb);
@@ -58,109 +100,16 @@ void printActualBuffer(cbuffer_t *cb);
 // Reads but does not remove the first character of the cbuffer and returns it. Returns -1 if an error occurs.
 char peekBuffer(cbuffer_t *cb);
 
-// File operations defined for use in our program
-struct file_operations fops = {
-    .read = readFromDevice,
-    .write = writeToDevice,
-    .open = openDevice,
-    .release = closeDevice
-};
-
-// Global variables
-
-int driverNumber;                               // Device Driver Number
-char buffer[BUFFER_SIZE];                       // Character Buffer
-bool deviceOpen = false;                        // Checks if a device is in use
-cbuffer_t msg;                                  // Circle buffer for input
-
-
-// First method to be called when the module is loaded
-int init_module(void)
-{
-    driverNumber = register_chrdev(0, DEVICE_NAME, &fops);
-    
-    // Error-check
-    if(driverNumber < 0)
-    {
-        printk(KERN_INFO "Device failed to register: %d\n", driverNumber);
-        
-        return driverNumber;
-    }
-    // Success
-    else
-    {
-        printk(KERN_INFO "Module successfully loaded!\n");
-
-        return 0;
-    }
-}
-
-// Method to be called when module is unloaded
-void cleanup_module(void)
-{
-    unregister_chrdev(driverNumber, DEVICE_NAME);
-    
-    printk(KERN_ALERT "Module successfully unloaded.\n");
-}
-
-// Method called when opening a device
-int openDevice(struct inode *inode, struct file *file)
-{
-    if(deviceOpen)
-    {
-        printk(KERN_ALERT "A device is currently opened in this module.\n");
-        
-        return EBUSY;
-    }
-        
-    else
-    {
-        try_module_get(THIS_MODULE);
-        
-        printk(KERN_INFO "The device was successfully opened!\n");
-        
-        deviceOpen = true;
-        
-        return 0;
-    }
-}
-
-// Method called when closing the current device
-int closeDevice(struct inode *inode, struct file *file)
-{
-    module_put(THIS_MODULE);
-    
-    printk(KERN_ALERT "The device was successfully released!\n");
-    
-    deviceOpen = false;
-    
-    return 0;
-}
-
-// Method called when reading from the device to the buffer
-int readFromDevice(struct file *filp, char *buffer, size_t length, loff_t *offset)
-{
-    // Number of bytes written to buffer
-    int bytes_read = 0;
-
-
-    return 0;
-}
-
-int writeToDevice(struct file *filp, const char *buffer, size_t length, loff_t *offset)
-{
-    // TODO
-    return 0;
-}
-
 
 // Functions
 // Creates a cbuffer of size n and returns a pointer to it. Returns NULL if an error occurs.
 cbuffer_t* createCirBuffer(int n) {
-    cbuffer_t * cb = (cbuffer_t*) kmalloc(sizeof(cbuffer_t), GFP_KERNEL);
+    //THISint i = 0;
+
+    cbuffer_t * cb = (struct cbuffer*) vmalloc(sizeof(cbuffer_t));
 
     // allocate space for the cbs character array
-    cb->buffer = (char *) kmalloc(sizeof(char)*n, GFP_KERNEL);
+    cb->buffer = (char *) vmalloc(sizeof(char)*n);
 
     // set the cb attributes to default values
     cb->start = 0;
@@ -171,10 +120,6 @@ cbuffer_t* createCirBuffer(int n) {
 
     cb->charsinbuffer = 0;
 
-//    for(i = 0; i < n; i++){
-//        cb->buffer[i] = -1;
-//    }
-
     // if there were no issues, return a pointer to the newcbuffer
     return cb;
 }
@@ -183,14 +128,14 @@ cbuffer_t* createCirBuffer(int n) {
 void destroyCirBuffer(cbuffer_t *cb){
     if(cb != NULL){
         if(cb->buffer != NULL){
-            kfree(cb->buffer);
+            vfree(cb->buffer);
         }
-        kfree(cb);
+        vfree(cb);
     }
 }
 
 // Writes passed character to end of cbuffer and returns the passed character if space is available. Returns -1 if an error occurs.
-int *writeToBuffer(cbuffer_t *cb, char c){
+int writeToBuffer(cbuffer_t *cb, char c){
 
     if(cb->charsinbuffer < cb->buffersize){
         // buffer is not full
@@ -223,6 +168,7 @@ int *writeToBuffer(cbuffer_t *cb, char c){
 // Reads the last character from the cbuffer, removes it from the buffer and returns it. Returns -1 if an error occurs.
 char readFromBuffer(cbuffer_t *cb){
     char bchar = -1;
+    //THISint i;
 
     if(cb->charsinbuffer > 0) {
         // buffer is not empty
@@ -238,63 +184,6 @@ char readFromBuffer(cbuffer_t *cb){
     return bchar;
 }
 
-// Prints the effective buffer starting from the starting index to the ending index of the buffer
-void printEffectiveBuffer(cbuffer_t *cb){
-    int i;
-    int f;
-    int cursor;
-    printk("[");
-
-    if(cb->charsinbuffer > 0){
-        // 1 or more chars
-
-        if(cb->charsinbuffer == 1){
-            // 1 char
-            printk("%d",cb->buffer[cursor]);
-
-        }else{
-            // 2 or more chars
-            cursor = cb->start;
-
-            while(cursor != cb->end){
-                printk("%d,",cb->buffer[cursor]);
-                cursor = (cursor + 1) % cb->buffersize;
-            }
-
-            printk("%d",cb->buffer[cursor]);
-
-
-        }
-
-    }else{
-        // 0 chars
-
-    }
-    printk("]\n");
-
-}
-
-// Prints the whole actual buffer starting from index 0 to end of the buffer
-void printActualBuffer(cbuffer_t *cb){
-    int i;
-    int f;
-    printk("[");
-
-    if(cb->buffersize > 0){
-        // 1 or more chars
-        f = cb->buffersize - 2;
-        for(i = 0; i < f; i++){
-            printk("%d,",cb->buffer[i]);
-        }
-        i++;
-        printk("%d",cb->buffer[i]);
-    }else{
-        // 0 chars
-
-    }
-    printk("]\n");
-
-}
 
 // Reads but does not remove the first character of the cbuffer and returns it. Returns -1 if an error occurs.
 char peekBuffer(cbuffer_t *cb){
@@ -306,3 +195,259 @@ char peekBuffer(cbuffer_t *cb){
 
     return temp;
 }
+
+
+
+// Prints the effective buffer starting from the starting index to the ending index of the buffer
+void printEffectiveBuffer(cbuffer_t *cb){
+
+    int cursor = 0;
+    printk(KERN_INFO "[");
+
+    if(cb->charsinbuffer > 0){
+        // 1 or more chars
+
+        if(cb->charsinbuffer == 1){
+            // 1 char
+            printk(KERN_INFO "%d",cb->buffer[cursor]);
+
+        }else{
+            // 2 or more chars
+            cursor = cb->start;
+
+            while(cursor != cb->end){
+                printk(KERN_INFO "%d,",cb->buffer[cursor]);
+                cursor = (cursor + 1) % cb->buffersize;
+            }
+
+            printk(KERN_INFO "%d",cb->buffer[cursor]);
+
+
+        }
+
+    }else{
+        // 0 chars
+
+    }
+    printk(KERN_INFO "]\n");
+
+}
+
+// Prints the whole actual buffer starting from index 0 to end of the buffer
+void printActualBuffer(cbuffer_t *cb){
+    int i;
+    int f;
+    printk(KERN_INFO "[");
+
+    if(cb->buffersize > 0){
+        // 1 or more chars
+        f = cb->buffersize - 2;
+        for(i = 0; i < f; i++){
+            printk(KERN_INFO "%d,",cb->buffer[i]);
+        }
+        i++;
+        printk(KERN_INFO "%d",cb->buffer[i]);
+    }else{
+        // 0 chars
+
+    }
+    printk(KERN_INFO "]\n");
+
+}
+
+// This is code from the circular buffer c file
+//======================================================================================================================================================================================
+//======================================================================================================================================================================================
+//======================================================================================================================================================================================
+//======================================================================================================================================================================================
+//======================================================================================================================================================================================
+//======================================================================================================================================================================================
+
+
+
+
+
+
+
+
+
+
+
+// global circular buffer pointer
+cbuffer_t *cb;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//======================================================================================================================================================================================
+//======================================================================================================================================================================================
+//======================================================================================================================================================================================
+// The stuff here is from the Molly example and should not be submitted. It's only purpose was to get the project up and running to test the read/write functions
+
+// define the functions of the module 
+static struct file_operations fops =
+{
+   .open = dev_open,
+   .read = dev_read,
+   .write = dev_write,
+   .release = dev_release,
+};
+
+// initializes the module
+static int __init charMode_init(void){
+   printk(KERN_INFO "charMode: Initializing the charMode LKM\n");
+
+   // dynamically allocate a major number for the device
+   majorNumber = register_chrdev(0, DEVICE_NAME, &fops);
+   
+   if (majorNumber<0){
+      printk(KERN_ALERT "charMode failed to register a major number\n");
+      return majorNumber;
+   }
+   
+   printk(KERN_INFO "charMode: registered correctly with major number %d\n", majorNumber);
+
+   // Register the device class
+   charModeClass = class_create(THIS_MODULE, CLASS_NAME);
+   if (IS_ERR(charModeClass)){                // Check for error and clean up if there is
+      unregister_chrdev(majorNumber, DEVICE_NAME);
+      printk(KERN_ALERT "Failed to register device class\n");
+      return PTR_ERR(charModeClass);          // Correct way to return an error on a pointer
+   }
+   printk(KERN_INFO "charMode: device class registered correctly\n");
+
+   // Register the device driver
+   charModeDevice = device_create(charModeClass, NULL, MKDEV(majorNumber, 0), NULL, DEVICE_NAME);
+   
+   // perform cleanup on error
+   if (IS_ERR(charModeDevice)){        
+      class_destroy(charModeClass);           
+      unregister_chrdev(majorNumber, DEVICE_NAME);
+      printk(KERN_ALERT "Failed to create the device\n");
+      return PTR_ERR(charModeDevice);
+   }
+   
+   printk(KERN_INFO "charMode: device class created correctly\n"); 
+
+	// initialize the CB
+	cb = createCirBuffer(10);
+
+   return 0;
+}
+
+// exit function for module
+static void __exit charMode_exit(void){
+	// destroy the device
+	device_destroy(charModeClass, MKDEV(majorNumber, 0)); 
+    
+	// unregister the device class
+	class_unregister(charModeClass);                          
+	
+	// destroy the device class
+	class_destroy(charModeClass);      
+
+	// unregister the device                       
+	unregister_chrdev(majorNumber, DEVICE_NAME);  
+           
+	printk(KERN_INFO "charMode: Device exiting\n");
+   
+	// destroy the circular buffer
+	destroyCirBuffer(cb);
+}
+
+// open function for module
+static int dev_open(struct inode *inodep, struct file *filep){
+   numberOpens++;
+
+   printk(KERN_INFO "charMode: Device has been opened %d time(s)\n", numberOpens);
+   
+   return 0;
+}
+
+// release function for module
+static int dev_release(struct inode *inodep, struct file *filep){
+   printk(KERN_INFO "charMode: Device successfully closed\n");
+   return 0;
+}
+
+
+// The stuff here is from the Molly example and should not be submitted. It's only purpose was to get the project up and running to test the read/write functions
+//======================================================================================================================================================================================
+//======================================================================================================================================================================================
+//======================================================================================================================================================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// read function for the module
+static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset){
+
+	int i = 0;
+	char temp = -2;
+
+	printk(KERN_INFO "charMode: Received request for %zu characters from the user\n", len);
+	printk(KERN_INFO "charMode: Current CB count before read is: %d\n", cb->charsinbuffer);
+
+	for(i = 0; i < len; i++){
+		temp =  readFromBuffer(cb);
+		
+		if(temp == -1){
+			buffer[i] = '\0';
+			break;
+		}else{
+			buffer[i] = temp;
+		}
+		
+		
+	}
+
+	printk(KERN_INFO "charMode: Current CB count after read is: %d\n", cb->charsinbuffer);
+	return 0;
+}
+
+// write function for the module
+static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset){
+	int i = 0;
+	int temp = 0;
+	printk(KERN_INFO "charMode: Received %zu characters from the user\n", len);
+	printk(KERN_INFO "charMode: Current CB count before write is: %d\n", cb->charsinbuffer);
+	
+
+	for(i = 0; i < len; i++){
+		temp =  writeToBuffer(cb, buffer[i]);
+		
+		if(temp == -1){
+			break;
+		}
+		
+	}	
+	printk(KERN_INFO "charMode: Current CB count after write is: %d\n", cb->charsinbuffer);
+	
+	return 0;
+}
+
+
+// exit
+module_init(charMode_init);
+module_exit(charMode_exit);
