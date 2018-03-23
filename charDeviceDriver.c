@@ -162,18 +162,20 @@ int readFromDevice(struct file *filp, char *buffer, size_t length, loff_t *offse
 	printk(KERN_INFO "charMode: Received request for %zu characters from the user\n", length);
 	printk(KERN_INFO "charMode: Current CB count before read is: %d\n", cb->charsinbuffer);
 
-	for(i = 0; i < length; i++){
+	if(cb->charsinbuffer > 0){
 		temp =  readFromBuffer(cb);
-		
-		if(temp == -1){
-			buffer[i] = '\0';
-			break;
-		}else{
+		while(i < length && cb->charsinbuffer > 0){		
+			//printk(KERN_INFO "charMode: adding char to buffer: %d\n", temp);
 			buffer[i] = temp;
+			temp =  readFromBuffer(cb);
+			i++;
+		
 		}
-		
-		
 	}
+	
+
+	printk(KERN_INFO "charMode: adding null char to buffer\n");
+	buffer[i] = '\0';
 
 	printk(KERN_INFO "charMode: Current CB count after read is: %d\n", cb->charsinbuffer);
 
