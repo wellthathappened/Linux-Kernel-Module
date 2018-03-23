@@ -36,14 +36,7 @@ typedef struct cbuffer {
     int charsinbuffer;  // total number of filled cells in the buffer
 }cbuffer_t;
 
-
 // Function prototypes
-void cleanup_module(void);
-int init_module(void);
-int openDevice(struct inode *inode, struct file *file);
-int closeDevice(struct inode *inode, struct file *file);
-int readFromDevice(struct file *, char *, size_t, loff_t *);
-int writeToDevice(struct file *, const char *, size_t, loff_t *);
 
 // Creates a cbuffer of size n and returns a pointer to it. Returns NULL if an error occurs.
 cbuffer_t* createCirBuffer(int n);
@@ -66,6 +59,17 @@ void printActualBuffer(cbuffer_t *cb);
 // Reads but does not remove the first character of the cbuffer and returns it. Returns -1 if an error occurs.
 char peekBuffer(cbuffer_t *cb);
 
+
+// Function prototypes
+void cleanup_module(void);
+int init_module(void);
+int openDevice(struct inode *inode, struct file *file);
+int closeDevice(struct inode *inode, struct file *file);
+int readFromDevice(struct file *, char *, size_t, loff_t *);
+int writeToDevice(struct file *, const char *, size_t, loff_t *);
+
+
+
 // File operations defined for use in our program
 struct file_operations fops = {
     .read = readFromDevice,
@@ -79,7 +83,7 @@ struct file_operations fops = {
 int driverNumber;                               // Device Driver Number
 char buffer[BUFFER_SIZE];                       // Character Buffer
 bool deviceOpen = false;                        // Checks if a device is in use
-cbuffer_t *cb = NULL;                                  	// Circle buffer for input
+static cbuffer_t *cb = NULL;                                  	// Circle buffer for input
 
 
 // First method to be called when the module is loaded
@@ -163,9 +167,11 @@ int readFromDevice(struct file *filp, char *buffer, size_t length, loff_t *offse
 	printk(KERN_INFO "charMode: Current CB count before read is: %d\n", cb->charsinbuffer);
 
 	if(cb->charsinbuffer > 0){
+
 		temp =  readFromBuffer(cb);
-		while(i < length && cb->charsinbuffer > 0){		
-			//printk(KERN_INFO "charMode: adding char to buffer: %d\n", temp);
+		while(i <= length && temp != -1){		
+			printk(KERN_INFO "charMode: adding char to buffer: %d\n", temp);
+			
 			buffer[i] = temp;
 			temp =  readFromBuffer(cb);
 			i++;
@@ -173,7 +179,7 @@ int readFromDevice(struct file *filp, char *buffer, size_t length, loff_t *offse
 		}
 	}
 	
-
+	
 	printk(KERN_INFO "charMode: adding null char to buffer\n");
 	buffer[i] = '\0';
 
@@ -186,14 +192,16 @@ int writeToDevice(struct file *filp, const char *buffer, size_t length, loff_t *
 {
     int i = 0;
 	int temp = 0;
-	printk(KERN_INFO "charMode: Received %zu characters from the user\n", length);
+	printk(KERN_INFO "charMode: Received %d characters from the user\n", length);
 	printk(KERN_INFO "charMode: Current CB count before write is: %d\n", cb->charsinbuffer);
 	
 
 	for(i = 0; i < length; i++){
 		temp =  writeToBuffer(cb, buffer[i]);
-		
+		printk(KERN_INFO "charMode: adding char to cb: %d\n", temp);
+		printEffectiveBuffer(cb);
 		if(temp == -1){
+			printk(KERN_INFO "charMode: cb is full\n");
 			break;
 		}
 		
@@ -207,11 +215,10 @@ int writeToDevice(struct file *filp, const char *buffer, size_t length, loff_t *
 //========================================================================================================================================================================================================
 //========================================================================================================================================================================================================
 
-
 // Functions
 // Creates a cbuffer of size n and returns a pointer to it. Returns NULL if an error occurs.
 cbuffer_t* createCirBuffer(int n) {
-    //THISint i = 0;
+    //int i = 0;
 
     cbuffer_t * cb = (struct cbuffer*) vmalloc(sizeof(cbuffer_t));
 
@@ -226,6 +233,10 @@ cbuffer_t* createCirBuffer(int n) {
     cb->buffersize = n;
 
     cb->charsinbuffer = 0;
+
+//    for(i = 0; i < n; i++){
+//        cb->buffer[i] = -1;
+//    }
 
     // if there were no issues, return a pointer to the newcbuffer
     return cb;
@@ -249,7 +260,7 @@ int writeToBuffer(cbuffer_t *cb, char c){
         if(cb->charsinbuffer == 0){
             // buffer is empty
             cb->buffer[cb->start] = c;
-
+	cb->end = cb->start;
         }else{
             // buffer is not empty
             cb->end = (cb->end + 1) % cb->buffersize;
@@ -275,7 +286,7 @@ int writeToBuffer(cbuffer_t *cb, char c){
 // Reads the last character from the cbuffer, removes it from the buffer and returns it. Returns -1 if an error occurs.
 char readFromBuffer(cbuffer_t *cb){
     char bchar = -1;
-    //THISint i;
+    //int i;
 
     if(cb->charsinbuffer > 0) {
         // buffer is not empty
@@ -285,29 +296,16 @@ char readFromBuffer(cbuffer_t *cb){
 
     }else{
         // buffer is empty
-
+	cb->end = cb->start;
     }
 
     return bchar;
 }
 
-
-// Reads but does not remove the first character of the cbuffer and returns it. Returns -1 if an error occurs.
-char peekBuffer(cbuffer_t *cb){
-    char temp = -1;
-
-    if(cb->charsinbuffer > 0){
-        temp = cb->buffer[cb->start];
-    }
-
-    return temp;
-}
-
-
-
 // Prints the effective buffer starting from the starting index to the ending index of the buffer
 void printEffectiveBuffer(cbuffer_t *cb){
-
+    //int i;
+   // int f;
     int cursor = 0;
     printk(KERN_INFO "[");
 
@@ -360,4 +358,15 @@ void printActualBuffer(cbuffer_t *cb){
     }
     printk(KERN_INFO "]\n");
 
+}
+
+// Reads but does not remove the first character of the cbuffer and returns it. Returns -1 if an error occurs.
+char peekBuffer(cbuffer_t *cb){
+    char temp = -1;
+
+    if(cb->charsinbuffer > 0){
+        temp = cb->buffer[cb->start];
+    }
+
+    return temp;
 }
