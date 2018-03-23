@@ -168,15 +168,24 @@ int readFromDevice(struct file *filp, char *buffer, size_t length, loff_t *offse
 
 	if(cb->charsinbuffer > 0){
 
-		temp =  readFromBuffer(cb);
-		while(i <= length && temp != -1){		
+		if(length == 1){
+			// only 1 char requested
+			buffer[0] = readFromBuffer(cb);
 			printk(KERN_INFO "charMode: adding char to buffer: %d\n", temp);
-			
-			buffer[i] = temp;
-			temp =  readFromBuffer(cb);
 			i++;
+		}else{
+			// 2 or more char requested
+			temp =  readFromBuffer(cb);
+			while(i <= length && temp != -1){		
+				printk(KERN_INFO "charMode: adding char to buffer: %d\n", temp);
+			
+				buffer[i] = temp;
+				temp =  readFromBuffer(cb);
+				i++;
 		
+			}
 		}
+		
 	}
 	
 	
