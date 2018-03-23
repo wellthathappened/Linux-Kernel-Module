@@ -9,7 +9,7 @@
 
 
 // populates a buffer with x characters and tries to read y characters
-int fillthenread(int x, int y){
+int fillthenread(int x, int y, char c){
 
 	int fd = open("/dev/chardevdriver", O_RDWR); 
 	int i = 0;
@@ -34,7 +34,7 @@ int fillthenread(int x, int y){
 		}else{
 			// populate the string to send
 			for(i = 0; i < stringlen; i++){
-				stringtosend[i] = 'a';
+				stringtosend[i] = c;
 			}
 			stringtosend[i] = '\0';
 
@@ -66,12 +66,12 @@ int fillthenread(int x, int y){
 int testcase1(){
 	// empty the driver
 	printf("emptying the driver\n");
-	fillthenread(0, 1050);
+	fillthenread(0, 1050, 'c');
 	printf("\n");
 
 	// empty the driver
 	printf("emptying the driver\n");
-	fillthenread(0, 1050);
+	fillthenread(0, 1050, 'c');
 	printf("\n");
 	return 0;
 }
@@ -80,12 +80,12 @@ int testcase1(){
 int testcase2(){
 	// empty the driver
 	printf("emptying the driver\n");
-	fillthenread(0, 1050);
+	fillthenread(0, 1050, 'c');
 	printf("\n");
 
 	// fill the driver 
 	printf("filling the driver past limit\n");
-	fillthenread(1030, 0);
+	fillthenread(1030, 0, 'c');
 	printf("\n");
 	return 0;
 }
@@ -94,7 +94,17 @@ int testcase2(){
 int testcase3(){
 	// empty the driver
 	printf("emptying the driver\n");
-	fillthenread(0, 1050);
+	fillthenread(0, 1050, 'c');
+	printf("\n");
+
+	// fill the driver 
+	printf("filling the driver past limit\n");
+	fillthenread(1030, 0, 'a');
+	printf("\n");
+
+	// fill the driver 
+	printf("filling the driver past limit\n");
+	fillthenread(1030, 0, 'c');
 	printf("\n");
 	return 0;
 }
@@ -103,17 +113,17 @@ int testcase3(){
 int testcase4(){
 	// empty the driver
 	printf("emptying the driver\n");
-	fillthenread(0, 1050);
+	fillthenread(0, 1050, 'c');
 	printf("\n");
 
 	// partiall fill the driver
 	printf("filling the driver to limit\n");
-	fillthenread(1024, 0);
+	fillthenread(1024, 0, 'c');
 	printf("\n");
 
 	// empty the driver
 	printf("emptying the driver\n");
-	fillthenread(0, 1050);
+	fillthenread(0, 1050, 'c');
 	printf("\n");
 
 	return 0;
@@ -123,17 +133,17 @@ int testcase4(){
 int testcase5(){
 	// empty the driver
 	printf("emptying the driver\n");
-	fillthenread(0, 1050);
+	fillthenread(0, 1050, 'c');
 	printf("\n");
 
 	// partiall fill the driver
 	printf("filling the driver to limit\n");
-	fillthenread(1024, 0);
+	fillthenread(1024, 0, 'c');
 	printf("\n");
 
 	// empty the driver
 	printf("emptying the driver\n");
-	fillthenread(0, 1050);
+	fillthenread(0, 1050, 'c');
 	printf("\n");
 
 	return 0;
@@ -143,17 +153,17 @@ int testcase5(){
 int testcase6(){
 	// empty the driver
 	printf("emptying the driver\n");
-	fillthenread(0, 1050);
+	fillthenread(0, 1050, 'c');
 	printf("\n");
 
 	// partiall fill the driver
 	printf("filling the driver to limit\n");
-	fillthenread(500, 0);
+	fillthenread(500, 0, 'c');
 	printf("\n");
 
 	// partiall fill the driver
 	printf("filling the driver to limit\n");
-	fillthenread(500, 0);
+	fillthenread(500, 0, 'c');
 	printf("\n");
 
 
@@ -162,7 +172,7 @@ int testcase6(){
 
 
 int main(){
-
+testcase3();
 
 	return 0;		
 }
