@@ -1,0 +1,29 @@
+
+
+sudo make
+ 
+sudo insmod charDeviceDriver.ko 
+
+sudo rmmod charDeviceDriver
+
+sudo ./test 
+
+clear; dmesg | tail -n 40
+
+
+
+Quickstart guide
+clear; sudo make; sudo insmod charDeviceDriver.ko
+
+driver should now be registerd, look for it by using the lsmod command
+
+clear; dmesg | tail -n 40
+
+look for something like 'mknod /dev/chardevdriver c 247 0', 
+copy that mknod segment without the quotes
+enter it into terminal
+
+driver should now be in /dev/ folder, find it by:
+ls /dev/
+
+then run sudo ./test
