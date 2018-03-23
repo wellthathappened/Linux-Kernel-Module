@@ -62,16 +62,49 @@ int fillthenread(int x, int y){
 	}
 }
 
-int main(){
+// empty the driver completely, then empty it again
+int testcase1(){
+	// empty the driver
+	printf("emptying the driver\n");
+	fillthenread(0, 1050);
+	printf("\n");
+
+	// empty the driver
+	printf("emptying the driver\n");
+	fillthenread(0, 1050);
+	printf("\n");
+	return 0;
+}
+
+// empty the driver completely, fill it completely
+int testcase2(){
 	// empty the driver
 	printf("emptying the driver\n");
 	fillthenread(0, 1050);
 	printf("\n");
 
 	// fill the driver 
-	//printf("filling the driver past limit\n");
-	//readthenfill(1030, 0);
-	//printf("\n");
+	printf("filling the driver past limit\n");
+	fillthenread(1030, 0);
+	printf("\n");
+	return 0;
+}
+
+// empty the driver completely, fill the driver completely, then fill it again
+int testcase3(){
+	// empty the driver
+	printf("emptying the driver\n");
+	fillthenread(0, 1050);
+	printf("\n");
+	return 0;
+}
+
+// empty the driver completely, fill it partially, then empty the driver completely
+int testcase4(){
+	// empty the driver
+	printf("emptying the driver\n");
+	fillthenread(0, 1050);
+	printf("\n");
 
 	// partiall fill the driver
 	printf("filling the driver to limit\n");
@@ -82,5 +115,54 @@ int main(){
 	printf("emptying the driver\n");
 	fillthenread(0, 1050);
 	printf("\n");
+
 	return 0;
+}
+
+// empty the driver completely, fill it partially, then fill the driver completely
+int testcase5(){
+	// empty the driver
+	printf("emptying the driver\n");
+	fillthenread(0, 1050);
+	printf("\n");
+
+	// partiall fill the driver
+	printf("filling the driver to limit\n");
+	fillthenread(1024, 0);
+	printf("\n");
+
+	// empty the driver
+	printf("emptying the driver\n");
+	fillthenread(0, 1050);
+	printf("\n");
+
+	return 0;
+}
+
+// empty the driver completely, fill it partially, then fill it partially again
+int testcase6(){
+	// empty the driver
+	printf("emptying the driver\n");
+	fillthenread(0, 1050);
+	printf("\n");
+
+	// partiall fill the driver
+	printf("filling the driver to limit\n");
+	fillthenread(500, 0);
+	printf("\n");
+
+	// partiall fill the driver
+	printf("filling the driver to limit\n");
+	fillthenread(500, 0);
+	printf("\n");
+
+
+	return 0;
+}
+
+
+int main(){
+
+
+	return 0;		
 }
