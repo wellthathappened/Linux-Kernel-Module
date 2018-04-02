@@ -1,4 +1,4 @@
-// COP 4600 - Programming Assignment 3
+// COP 4600 - Programming Assignment 2
 // Students: Serra Abak, Ian Lewis, Jonathan Killeen
 // Instructor: Matthew B. Gerber Ph.D.
 
