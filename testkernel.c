@@ -7,28 +7,25 @@
 
 
 
+// populates a buffer with x characters of value c
+int fill(int x, char c){
 
-// populates a buffer with x characters and tries to read y characters
-int fillthenread(int x, int y, char c){
-
-	int fd = open("/dev/chardevdriver", O_RDWR); 
+	int fdwo;
 	int i = 0;
 	int stringlen = x;
 	int ret = 0;
 	char stringtosend[stringlen+1];
 	char buffer[1030];
-	int charstoreq = y;
 	char *labelPtr = stringtosend;
 	
-	
 
-	// attempt to open the device
-	if (fd < 0){
-		perror("Failed to open the device...");
+	fdwo = open("/dev/wochardevdriver", O_WRONLY); 
+	
+	// attempt to open the wo device
+	if (fdwo < 0){
+		perror("Failed to open the wo device...");
 		return errno;
 	}else{
-		// writing
-		
 		if(x == 0){
 			printf("x = 0, do not send any characters to driver\n");
 		}else{
@@ -40,15 +37,37 @@ int fillthenread(int x, int y, char c){
 
 			// send it
 			printf("The sent message is: [%s]\n", stringtosend);
-			int ret = write(fd, labelPtr, stringlen);
+			int ret = write(fdwo, labelPtr, stringlen);
 			printf("RETURN VAL FROM DRIVER: %d\n", ret);
 		}
+	
+	
+		// close the wo device
+		ret = close(fdwo);
+	}
+}
 
-		// reading
+// tries to read y characters
+int reado(int y){
+
+	int fdro;
+	int i = 0;
+	int ret = 0;
+	char buffer[1030];
+	int charstoreq = y;
+	
+	
+	fdro = open("/dev/rochardevdriver", O_RDONLY); 
+	
+	// attempt to open the ro device
+	if (fdro < 0){
+		perror("Failed to open the ro device...");
+		return errno;
+	}else{
 	
 		if(y != 0){
 
-			ret = read(fd, buffer, charstoreq);
+			ret = read(fdro, buffer, charstoreq);
 			printf("requesting %d characters from the driver\n", charstoreq);
 			printf("The received message is: [%s]\n", buffer);
 			printf("received %d characters from the driver\n", strlen(buffer));
@@ -56,123 +75,33 @@ int fillthenread(int x, int y, char c){
 		}else{
 			printf("y = 0, do not request characters from driver\n");
 		}
-
-		// close the device
-		ret = close(fd);
+	
+		// close the ro device
+		ret = close(fdro);
 	}
 }
 
-// empty the driver completely, then empty it again
+
+//
 int testcase1(){
-	// empty the driver
-	printf("emptying the driver\n");
-	fillthenread(0, 1050, 'c');
-	printf("\n");
+	// empty the rodriver
+	reado(1050);
+	
+	sleep(1);
+	
+	// fill the wodriver
+	//fill(1050, 'a');
+	
+	sleep(1);
+	
+	// empty the rodriver
+	reado(1050);
 
-	// empty the driver
-	printf("emptying the driver\n");
-	fillthenread(0, 1050, 'c');
-	printf("\n");
-	return 0;
 }
-
-// empty the driver completely, fill it completely
-int testcase2(){
-	// empty the driver
-	printf("emptying the driver\n");
-	fillthenread(0, 1050, 'c');
-	printf("\n");
-
-	// fill the driver 
-	printf("filling the driver past limit\n");
-	fillthenread(1030, 0, 'c');
-	printf("\n");
-	return 0;
-}
-
-// empty the driver completely, fill the driver completely, then fill it again
-int testcase3(){
-	// empty the driver
-	printf("emptying the driver\n");
-	fillthenread(0, 1050, 'c');
-	printf("\n");
-
-	// fill the driver 
-	printf("filling the driver past limit\n");
-	fillthenread(1030, 0, 'a');
-	printf("\n");
-
-	// fill the driver 
-	printf("filling the driver past limit\n");
-	fillthenread(1030, 0, 'c');
-	printf("\n");
-	return 0;
-}
-
-// empty the driver completely, fill it partially, then empty the driver completely
-int testcase4(){
-	// empty the driver
-	printf("emptying the driver\n");
-	fillthenread(0, 1050, 'c');
-	printf("\n");
-
-	// partiall fill the driver
-	printf("filling the driver to limit\n");
-	fillthenread(1024, 0, 'c');
-	printf("\n");
-
-	// empty the driver
-	printf("emptying the driver\n");
-	fillthenread(0, 1050, 'c');
-	printf("\n");
-
-	return 0;
-}
-
-// empty the driver completely, fill it partially, then fill the driver completely
-int testcase5(){
-	// empty the driver
-	printf("emptying the driver\n");
-	fillthenread(0, 1050, 'c');
-	printf("\n");
-
-	// partiall fill the driver
-	printf("filling the driver to limit\n");
-	fillthenread(1024, 0, 'c');
-	printf("\n");
-
-	// empty the driver
-	printf("emptying the driver\n");
-	fillthenread(0, 1050, 'c');
-	printf("\n");
-
-	return 0;
-}
-
-// empty the driver completely, fill it partially, then fill it partially again
-int testcase6(){
-	// empty the driver
-	printf("emptying the driver\n");
-	fillthenread(0, 1050, 'c');
-	printf("\n");
-
-	// partiall fill the driver
-	printf("filling the driver to limit\n");
-	fillthenread(500, 0, 'c');
-	printf("\n");
-
-	// partiall fill the driver
-	printf("filling the driver to limit\n");
-	fillthenread(500, 0, 'c');
-	printf("\n");
-
-
-	return 0;
-}
-
 
 int main(){
-testcase3();
-
+	// empty the rodriver
+	testcase1();
+		
 	return 0;		
 }
