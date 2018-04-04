@@ -99,9 +99,21 @@ int testcase1(){
 
 }
 
+int testcase2(){
+	fill(7, 'a');
+	reado(4);
+	
+	fill(5, 'b');
+	reado(7);
+	
+	fill(1, 'c');
+	reado(1);
+}
+
 int main(){
 	// empty the rodriver
 	testcase1();
+	testcase2();
 		
 	return 0;		
 }
