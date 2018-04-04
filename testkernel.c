@@ -106,8 +106,12 @@ int testcase2(){
 	fill(5, 'b');
 	reado(7);
 	
-	fill(1, 'c');
-	reado(1);
+	fill(2, 'c');
+	fill(2, 'd');
+	reado(2);
+	
+	fill(4, 'e');
+	reado(4);
 }
 
 int main(){
