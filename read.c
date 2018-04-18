@@ -25,7 +25,7 @@
 
 MODULE_LICENSE("GPL");            
 MODULE_AUTHOR("SA, IL, JK");  
-MODULE_DESCRIPTION("Linux read only char driver PA 3"); 
+MODULE_DESCRIPTION("Linux read only char driver PA 4");
 MODULE_VERSION("1"); 
 
 // Represents a circular buffer
@@ -45,7 +45,6 @@ cbuffer_t* createCirBuffer(int n);
 // Destroys a cbuffer.
 void destroyCirBuffer(cbuffer_t *cb);
 
-
 // Reads the last character from the cbuffer, removes it from the buffer and returns it. Returns -1 if an error occurs.
 char readFromBuffer(cbuffer_t *cb);
 
@@ -57,23 +56,6 @@ void printActualBuffer(cbuffer_t *cb);
 
 // Reads but does not remove the first character of the cbuffer and returns it. Returns -1 if an error occurs.
 char peekBuffer(cbuffer_t *cb);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // Function prototypes
 void cleanup_module(void);
@@ -96,13 +78,12 @@ char buffer[BUFFER_SIZE];                       // Character Buffer
 bool deviceOpen = false;                        // Checks if a device is in use
 static cbuffer_t *cb = NULL;                                  	// Circle buffer for input
 static DEFINE_MUTEX(cb_mutex);
-
+bool uFound = false;
+bool cFound = false;
+bool fFound = false;
 
 //static struct class c_dev;
 //static struct dev_t dev;
-
-
-
 
 // make the CB extnerally accessible
 EXPORT_SYMBOL(cb);
@@ -119,8 +100,6 @@ int init_module(void)
     
 	// initialize the CB
 	cb = createCirBuffer(BUFFER_SIZE);
-	
-
 	
     // Error-check
     if(driverNumber < 0)
@@ -317,6 +296,18 @@ void destroyCirBuffer(cbuffer_t *cb){
 // Writes passed character to end of cbuffer and returns the passed character if space is available. Returns -1 if an error occurs.
 int writeToBuffer(cbuffer_t *cb, char c){
 
+    if((uFound == false) && (c == 'U'))
+        uFound = true;
+    
+    if((cFound == false) && (c == 'C'))
+        cFound = true;
+    
+    if((fFound == false) && (c == 'F'))
+        fFound = true;
+    
+    if(uFound && cFound && fFound)
+        ucfFound = true;
+        
     if(cb->charsinbuffer < cb->buffersize){
         // buffer is not full
         if(cb->charsinbuffer == 0){

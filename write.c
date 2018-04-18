@@ -23,7 +23,7 @@
 
 MODULE_LICENSE("GPL");            
 MODULE_AUTHOR("SA, IL, JK");  
-MODULE_DESCRIPTION("Linux write only char driver PA 3"); 
+MODULE_DESCRIPTION("Linux write only char driver PA 4");
 MODULE_VERSION("1"); 
 
 // Represents a circular buffer
@@ -39,38 +39,6 @@ typedef struct cbuffer {
 
 // Writes passed character to end of cbuffer and returns the passed character if space is available. Returns -1 if an error occurs.
 int writeToBuffer(cbuffer_t *cb, char c);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // Function prototypes
 void cleanup_module(void);
@@ -91,6 +59,8 @@ struct file_operations fops = {
 int driverNumber;                               // Device Driver Number
 char buffer[BUFFER_SIZE];                       // Character Buffer
 bool deviceOpen = false;                        // Checks if a device is in use
+bool ucfFound = false;
+char[] foundString = "Undefeated 2018 National Champions UCF";
 
 
 
@@ -113,8 +83,6 @@ int init_module(void)
 	printk(KERN_INFO "'mknod /dev/%s c %d 0'.\n", DEVICE_NAME, driverNumber);
         return 0;
     }
-
-
 
 }
 
