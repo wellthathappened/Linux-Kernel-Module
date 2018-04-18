@@ -296,14 +296,36 @@ void destroyCirBuffer(cbuffer_t *cb){
 // Writes passed character to end of cbuffer and returns the passed character if space is available. Returns -1 if an error occurs.
 int writeToBuffer(cbuffer_t *cb, char c){
 
-    if((uFound == false) && (c == 'U'))
+    // If a 'U' is found, we start checking off whether or not we have the letters read in the required order.
+    if(c == 'U')
+    {
+        // Since the order will always have to be 'U' then 'C' then 'F', we set cFound and fFound to false
+        // so that we can force the order to always remain the same.
+        
+        // This will be the only way U is set to true, only when the others are set to false.
         uFound = true;
+        cFound = false;
+        fFound = false;
+    }
     
-    if((cFound == false) && (c == 'C'))
+    else if((c == 'C') && (uFound))
+    {
         cFound = true;
+        fFound = false;
+    }
     
-    if((fFound == false) && (c == 'F'))
-        fFound = true;
+    else if(c == 'F')
+    {
+        if(uFound && cFound)
+            fFound = true;
+        
+        else if(uFound)
+        {
+            uFound = false;
+            cFound = false;
+            fFound = false;
+        }
+    }
     
     if(uFound && cFound && fFound)
         ucfFound = true;
