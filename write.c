@@ -59,7 +59,7 @@ struct file_operations fops = {
 int driverNumber;                               // Device Driver Number
 char buffer[BUFFER_SIZE];                       // Character Buffer
 bool deviceOpen = false;                        // Checks if a device is in use
-bool ucfFound = false;
+int ucfFound = 0;
 char[] foundString = "Undefeated 2018 National Champions UCF";
 
 
@@ -160,9 +160,28 @@ int writeToDevice(struct file *filp, const char *buffer, size_t length, loff_t *
 		printk(KERN_INFO "writechar: adding char to cb: %d\n", temp);
 			
 		for(i = 0; i < length; i++){
+
+            // Check for the string "UCF"
+            if(ucfFound == 0 && buffer[i] == 'U')
+                ucfFound++;
+            else if(ucfFound == 1 && buffer[i] == 'C')
+                ucfFound++;
+            else if(ucfFound == 2 && buffer[i] == 'F')
+                ucfFound++;
+            else
+                ucfFound = 0;
+
+            // Write the character to buffer
 			temp =  writeToBuffer(cb, buffer[i]);
 			printk(KERN_INFO "writechar: adding char to cb: %d\n", temp);
 			//printEffectiveBuffer(cb);
+
+            // If "UCF" is found, replace “Undefeated 2018 National Champions UCF”
+            if(ucfFound == 3) {
+                // Do work
+                ucfFound = 0;
+            }
+
 			if(temp == -1){
 				printk(KERN_INFO "writechar: cb is full\n");
 				break;
@@ -195,7 +214,7 @@ int writeToBuffer(cbuffer_t *cb, char c){
         if(cb->charsinbuffer == 0){
             // buffer is empty
             cb->buffer[cb->start] = c;
-	cb->end = cb->start;
+	        cb->end = cb->start;
         }else{
             // buffer is not empty
             cb->end = (cb->end + 1) % cb->buffersize;
