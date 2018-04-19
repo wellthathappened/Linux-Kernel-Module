@@ -178,7 +178,16 @@ int writeToDevice(struct file *filp, const char *buffer, size_t length, loff_t *
 
             // If "UCF" is found, replace “Undefeated 2018 National Champions UCF”
             if(ucfFound == 3) {
-                // Do work
+                printk(KERN_INFO "UCF found\n");
+                
+                cb->end = (cb-end - 3) % cb->buffersize;
+
+
+                for(int i = 0; i < strlen(foundString); i++) {
+                    temp =  writeToBuffer(cb, foundString[i]);
+                    printk(KERN_INFO "writechar: adding char to cb: %d\n", temp);
+                }
+
                 ucfFound = 0;
             }
 
