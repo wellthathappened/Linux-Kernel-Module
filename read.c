@@ -223,7 +223,7 @@ int readFromDevice(struct file *filp, char *buffer, size_t length, loff_t *offse
 		}else{
 			// 2 or more char requested
 			temp =  readFromBuffer(cb);
-			while(i <= length && temp != -1){		
+			while(i < length && temp != -1){		
 				printk(KERN_INFO "readchar: adding char to buffer: %d\n", temp);
 			
 				buffer[i] = temp;
