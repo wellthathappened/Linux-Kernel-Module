@@ -38,18 +38,6 @@ int reado(int y, int fdro){
 
 //
 int testcase1(){
-	// empty the rodriver
-	//reado(1050);
-	
-	sleep(1);
-	
-	// fill the wodriver
-	//fill(1050, 'a');
-	
-	sleep(1);
-	
-	// empty the rodriver
-	//reado(1050);
 
 }
 
@@ -58,7 +46,6 @@ int testcase2(){
 	int fdro = open("/dev/rochardevdriver", O_RDONLY); 
 	int fdwo = open("/dev/wochardevdriver", O_WRONLY); 
 	int i = 1;
-
 	// attempt to open the ro device
 	if (fdro < 0) {
 		perror("Failed to open the ro device...");
@@ -68,6 +55,26 @@ int testcase2(){
 		perror("Failed to open the wo device...");
 		exit(-1);
 	}
+
+
+	// empty the rodriver
+	reado(1050, fdro);
+	
+	sleep(1);
+	
+
+	char *str = malloc(1050 + 1);
+	memset(str, 'a', 1050);
+	str[1050] = 0;
+
+	// fill the wodriver
+	send(str,fdwo);
+	
+	sleep(1);
+	
+	// empty the rodriver
+	reado(1050, fdro);
+
 
 	send("UCF is a school in Florida.", fdwo);
 	printf("Read how many?: ");
