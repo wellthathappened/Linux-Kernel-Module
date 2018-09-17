@@ -59,8 +59,8 @@ struct file_operations fops = {
 int driverNumber;                               // Device Driver Number
 char buffer[BUFFER_SIZE];                       // Character Buffer
 bool deviceOpen = false;                        // Checks if a device is in use
-bool ucfFound = false;
-char[] foundString = "Undefeated 2018 National Champions UCF";
+int ucfFound = 0;
+char foundString[] = "Undefeated 2018 National Champions UCF";
 
 
 
@@ -149,35 +149,68 @@ int writeToDevice(struct file *filp, const char *buffer, size_t length, loff_t *
 	
 	
 	// Try to acquire the mutex (i.e., put the lock on/down)
-	printk(KERN_INFO "writechar: locking mutex\n");
+	//printk(KERN_INFO "writechar: locking mutex\n");
 	if(!mutex_trylock(&cb_mutex) ){    
 	
 		printk(KERN_ALERT "writechar: failed to lock mutex");
 		return -1;
 				
 	}else{
-		printk(KERN_INFO "writechar: mutex locked\n");
-		printk(KERN_INFO "writechar: adding char to cb: %d\n", temp);
+		//printk(KERN_INFO "writechar: mutex locked\n");
+		//printk(KERN_INFO "writechar: adding char to cb: %d\n", temp);
+
+        // Reset UCF counter to zero for current string
+        ucfFound = 0;
 			
 		for(i = 0; i < length; i++){
+            int j;
+
+            // Check for the string "UCF"
+            if(ucfFound == 0 && buffer[i] == 'U')
+                ucfFound++;
+            else if(ucfFound == 1 && buffer[i] == 'C')
+                ucfFound++;
+            else if(ucfFound == 2 && buffer[i] == 'F')
+                ucfFound++;
+            else
+                ucfFound = 0;
+
+            // Write the character to buffer
 			temp =  writeToBuffer(cb, buffer[i]);
-			printk(KERN_INFO "writechar: adding char to cb: %d\n", temp);
+			printk(KERN_INFO "writechar: add char: %d\n", temp);
 			//printEffectiveBuffer(cb);
+
+            // If "UCF" is found, replace “Undefeated 2018 National Champions UCF”
+            if(ucfFound == 3) {
+                printk(KERN_INFO "UCF found\n");
+                    
+                cb->end = (cb->end - 3) % cb->buffersize;
+
+
+                for(j = 0; j < strlen(foundString); j++) {
+                    temp =  writeToBuffer(cb, foundString[j]);
+                    printk(KERN_INFO "writechar: adding char to cb: %c\n", temp);
+                }
+
+                ucfFound = 0;
+            }
+
 			if(temp == -1){
 				printk(KERN_INFO "writechar: cb is full\n");
 				break;
 			}
 			
 		}
+
 		printk(KERN_INFO "writechar: Current CB count after write is: %d\n", cb->charsinbuffer);
 
-		printk(KERN_INFO "writechar: unlocking mutex\n");		
+		//printk(KERN_INFO "writechar: unlocking mutex\n");		
 		mutex_unlock(&cb_mutex);          /// Releases the mutex (i.e., the lock goes up)
-		printk(KERN_INFO "writechar: mutex unlocked\n");
+		//printk(KERN_INFO "writechar: mutex unlocked\n");
 	}
 	
 
-    return 0;
+    return (int) length;
 }
 
 //========================================================================================================================================================================================================
@@ -195,7 +228,7 @@ int writeToBuffer(cbuffer_t *cb, char c){
         if(cb->charsinbuffer == 0){
             // buffer is empty
             cb->buffer[cb->start] = c;
-	cb->end = cb->start;
+	        cb->end = cb->start;
         }else{
             // buffer is not empty
             cb->end = (cb->end + 1) % cb->buffersize;

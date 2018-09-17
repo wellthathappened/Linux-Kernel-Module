@@ -78,9 +78,6 @@ char buffer[BUFFER_SIZE];                       // Character Buffer
 bool deviceOpen = false;                        // Checks if a device is in use
 static cbuffer_t *cb = NULL;                                  	// Circle buffer for input
 static DEFINE_MUTEX(cb_mutex);
-bool uFound = false;
-bool cFound = false;
-bool fFound = false;
 
 //static struct class c_dev;
 //static struct dev_t dev;
@@ -293,72 +290,6 @@ void destroyCirBuffer(cbuffer_t *cb){
         vfree(cb);
     }
 }
-
-// Writes passed character to end of cbuffer and returns the passed character if space is available. Returns -1 if an error occurs.
-int writeToBuffer(cbuffer_t *cb, char c){
-
-    // If a 'U' is found, we start checking off whether or not we have the letters read in the required order.
-    if(c == 'U')
-    {
-        // Since the order will always have to be 'U' then 'C' then 'F', we set cFound and fFound to false
-        // so that we can force the order to always remain the same.
-        
-        // This will be the only way U is set to true, only when the others are set to false.
-        uFound = true;
-        cFound = false;
-        fFound = false;
-    }
-    
-    else if((c == 'C') && (uFound))
-    {
-        cFound = true;
-        fFound = false;
-    }
-    
-    else if(c == 'F')
-    {
-        if(uFound && cFound)
-            fFound = true;
-        
-        else if(uFound)
-        {
-            uFound = false;
-            cFound = false;
-            fFound = false;
-        }
-    }
-    
-    if(uFound && cFound && fFound)
-        ucfFound = true;
-        
-    if(cb->charsinbuffer < cb->buffersize){
-        // buffer is not full
-        if(cb->charsinbuffer == 0){
-            // buffer is empty
-            cb->buffer[cb->start] = c;
-	cb->end = cb->start;
-        }else{
-            // buffer is not empty
-            cb->end = (cb->end + 1) % cb->buffersize;
-
-            // check if end is outside actual array size
-
-            // check if end is equal to start
-
-            cb->buffer[cb->end] = c;
-
-        }
-
-        cb->charsinbuffer++;
-
-    }else{
-        // buffer is full
-        c = -1;
-    }
-
-    return c;
-}
-
 // Reads the last character from the cbuffer, removes it from the buffer and returns it. Returns -1 if an error occurs.
 char readFromBuffer(cbuffer_t *cb){
     char bchar = -1;
